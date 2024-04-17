@@ -151,6 +151,94 @@ public class EntityLifeCycleTests {
 
         //then
         assertEquals("치약맛 초코 아이스크림",entityManager.find(Menu.class,999).getMenuName());
-
     }
+
+    @DisplayName("준영속화 clear 테스트")
+    @ParameterizedTest
+    @ValueSource(ints = {1,2})
+    void testClearPersistenceContext(int menuCode){
+        //given
+        EntityManager entityManager = EntityManagerGenerator.getInstance();
+        Menu foundMenu =  entityManager.find(Menu.class,menuCode);
+
+        //when
+        //clear : 영속성 컨텍스트를 초기화 한다. -> 영속성 컨텍스트 내의 모든 엔티티를 준영속화 시킨다.
+        entityManager.clear();
+
+        //then
+        Menu expectedMenu =  entityManager.find(Menu.class,menuCode);
+        assertNotEquals(foundMenu,expectedMenu);
+    }
+
+    @DisplayName("준영속화 close 테스트")
+    @ParameterizedTest
+    @ValueSource(ints = {1,2})
+    void testClosePersistenceContext(int menuCode){
+        //given
+        EntityManager entityManager = EntityManagerGenerator.getInstance();
+        Menu foundMenu =  entityManager.find(Menu.class,menuCode);
+
+        //when
+        //close : 영속성 컨텍스트를 종료한다.
+        entityManager.close();
+
+        //then
+        assertThrows(IllegalStateException.class,
+                () -> entityManager.find(Menu.class,menuCode));
+    }
+
+    @DisplayName("영속성 엔티티 삭제 remove 테스트")
+    @ParameterizedTest
+    @ValueSource(ints = {1})
+    void testRemoveEntity(int menuCode){
+        //given
+        EntityManager entityManager = EntityManagerGenerator.getInstance();
+        EntityTransaction entityTransaction = entityManager.getTransaction();
+        Menu foundMenu =  entityManager.find(Menu.class,menuCode);
+
+        //when
+        //close : 영속성 컨텍스트를 종료한다.
+        entityTransaction.begin();
+        //remove : 영속성 컨텍스트 및 데이터베이스에서 삭제
+        //단 트랜잭션을 제어하지 않으면 데이터 베이스에 영구 반영 되지는 않는다.
+        //트랜잭션을 커밋하는 순간 영속성 컨텍스트에서 관리하는 엔티티 객체가 데이터 베이스에 반영 된다.
+        entityManager.remove(foundMenu);
+
+        //flush : 영속성 컨텍스트의 변경 내용을 데이터 베이스에 동기화 하는 작업
+        entityManager.flush();
+
+        //then
+        Menu refoundMenu = entityManager.find(Menu.class,menuCode);
+        assertNull(refoundMenu);
+        entityTransaction.rollback();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
